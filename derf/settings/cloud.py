@@ -1,0 +1,56 @@
+from settings.base import *
+
+
+DEBUG = False
+
+# Static site url, used when we need absolute url but lack request object, e.g. in email sending.
+SITE_URL = env.str("DJANGO_SITE_URL")
+
+EMAIL_HOST = env.str("DJANGO_EMAIL_HOST", default="smtp.sparkpostmail.com")
+EMAIL_PORT = env.int("DJANGO_EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env.str("DJANGO_EMAIL_HOST_USER", default="SMTP_Injection")
+EMAIL_HOST_PASSWORD = env.str("DJANGO_EMAIL_HOST_PASSWORD", default="TODO (api key)")
+
+STATIC_URL = env.str("DJANGO_STATIC_URL", default="/assets/")
+
+# Production logging - all INFO and higher messages go to info.log file.
+# ERROR and higher messages additionally go to error.log file
+LOGGING["loggers"][""] = {
+    "handlers": ["console"],
+    "level": "INFO",
+    "filters": ["require_debug_false"],
+}
+
+if env.str("DJANGO_DISABLE_FILE_LOGGING", default="n") != "y":
+    # Add file handlers
+    LOGGING["handlers"].update(
+        {
+            "info_log": {
+                "level": "INFO",
+                "class": "logging.handlers.WatchedFileHandler",
+                "filename": f"/var/log/{PROJECT_NAME}/info.log",
+                "formatter": "default",
+            },
+            "error_log": {
+                "level": "ERROR",
+                "class": "logging.handlers.WatchedFileHandler",
+                "filename": f"/var/log/{PROJECT_NAME}/error.log",
+                "formatter": "default",
+            },
+        }
+    )
+    LOGGING["loggers"][""]["handlers"] = ["info_log", "error_log"]
+
+else:
+    LOGGING["handlers"].update(
+        {"console": {"class": "logging.StreamHandler", "formatter": "default"}}
+    )
+
+# Enable S3 storage
+DEFAULT_FILE_STORAGE = f"{PROJECT_NAME}.storages.MediaStorage"
+MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", default="")
+AWS_STORAGE_BUCKET_NAME = env.str(
+    "DJANGO_AWS_STORAGE_BUCKET_NAME", default=f"{PROJECT_NAME}-TODO"
+)
+AWS_ACCESS_KEY_ID = env.str("DJANGO_AWS_ACCESS_KEY_ID", default="***UNSET***")
+AWS_SECRET_ACCESS_KEY = env.str("DJANGO_AWS_SECRET_ACCESS_KEY", default="***UNSET***")

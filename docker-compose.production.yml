@@ -1,0 +1,87 @@
+# Docker-compose configuration for production
+
+version: '2.1'
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile-django.production
+    env_file: .env
+    container_name: derf_django
+    restart: unless-stopped
+    volumes:
+      - "/var/lib/docker-nginx/files/derf/assets:/files/assets"
+      - "/var/log/derf:/var/log/derf"
+    # For some reason the command also has to be specified here, otherwise the entrypoint+command combination won't
+    #  work.
+    entrypoint: /usr/bin/wait-for-it.sh postgres:5432 -t 60 --
+    command: gunicorn derf.wsgi:application --workers 2 --bind :80
+    networks:
+      - default
+      - derf_nginx
+      - derf_postgres
+    depends_on:
+      - redis
+    external_links:
+      - postgres-12:postgres
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile-django.production
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - "/var/lib/docker-nginx/files/derf/media:/files/media"
+      - "/var/log/derf:/var/log/derf"
+    networks:
+      - default
+      - derf_postgres
+    depends_on:
+      - redis
+    external_links:
+      - postgres-12:postgres
+    entrypoint: /usr/bin/wait-for-it.sh postgres:5432 -t 60 --
+    command: celery --app derf worker --autoscale 6,2 --loglevel INFO
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile-django.production
+    env_file: .env
+    container_name: derf_celery_beat
+    restart: unless-stopped
+    volumes:
+      - "/var/lib/docker-derf/celery:/celery"
+      - "/var/log/derf:/var/log/derf"
+    networks:
+      - default
+    depends_on:
+      - redis
+    # Disable pidfile by specifying an empty one. We used fixed container_name which provides single-running-process
+    #  guarantee and the lack of pidfile ensures that Celery Beat starts even if the Docker container was killed and
+    #  then restarted (in which case the pidfile would still be present).
+    command: celery --app derf beat --loglevel INFO --logfile /var/log/derf/celery-beat.log --pidfile= --schedule /celery/celerybeat-schedule
+
+  redis:
+    image: redis:4.0.10-alpine
+    restart: unless-stopped
+    sysctls:
+      # To allow maintaining TCP backlog setting that defaults to 511
+      net.core.somaxconn: 512
+    volumes:
+      - "/var/lib/docker-derf/redis:/data"
+    networks:
+      - default
+
+# NB: These networks must be created by ansible and contain the global nginx/postgres containers.
+# Keep it in sync with ansible/roles/deploy/tasks/main.yml!
+networks:
+  default:
+    external:
+      name: derf_default
+  derf_nginx:
+    external: true
+  derf_postgres:
+    external: true

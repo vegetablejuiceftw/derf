@@ -1,0 +1,67 @@
+# You can also use the fallback image from docker hub: thorgate/django-template-ci:latest
+image: registry.gitlab.com/thorgate-public/django-project-template/ci:latest
+
+services:
+  - docker:dind
+
+variables:
+  POSTGRES_USER: "derf"
+  POSTGRES_PASSWORD: "derf"
+  DOCKER_DRIVER: overlay2
+  DOCKER_BUILDKIT: "1"
+  COMPOSE_DOCKER_CLI_BUILD: "1"
+
+before_script:
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+
+stages:
+  - test
+
+test-django:
+  stage: test
+  coverage: '/^TOTAL.*\s+(\d+\%)$/'
+  artifacts:
+    reports:
+      cobertura: derf/coverage.xml
+  except:
+    refs:
+      - template  # Don't run CI on template branch, should not be required
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /tests skip/
+      - $CI_COMMIT_MESSAGE =~ /test skip/
+      - $CI_COMMIT_MESSAGE =~ /\[no tests?\]/
+  variables:
+    EDIT_SETTINGS: "no"
+  script:
+    - make settings
+    - docker-compose build
+    - make lint-py
+    - make coverage-py
+
+test-node:
+  stage: test
+  coverage: '/All\sfiles.*?\s+(\d+.\d+)/'
+  cache:
+    key: ci-node-cache
+    paths:
+      - .data/node_modules
+      - .data/yarn
+    policy: pull-push
+  artifacts:
+    reports:
+      junit: webapp/coverage/cobertura-coverage.xml
+  except:
+    refs:
+      - template  # Don't run CI on template branch, should not be required
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /tests skip/
+      - $CI_COMMIT_MESSAGE =~ /test skip/
+      - $CI_COMMIT_MESSAGE =~ /\[no tests?\]/
+  variables:
+    EDIT_SETTINGS: "no"
+  script:
+    - make settings
+    - docker-compose build node
+    - make node-install
+    - make lint-js
+    - make coverage-js
