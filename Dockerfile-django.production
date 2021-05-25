@@ -64,9 +64,6 @@ COPY ./derf /app
 # Set the default directory where CMD will execute
 WORKDIR /app
 
-# Compile translations to .mo files
-RUN DJANGO_DOCKER_BUILD=True python manage.py compilemessages
-
 # Based on Node 12 Alpine image
 FROM node:12-alpine as node_builder
 
