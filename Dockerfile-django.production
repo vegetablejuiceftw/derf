@@ -91,6 +91,9 @@ RUN yarn install --frozen-lockfile
 COPY ./webapp/webapp /app/webapp
 COPY ./webapp/static /app/static
 
+# Reference proper DJANGO_STATIC_URL for assets
+ARG DJANGO_STATIC_URL
+
 # Build node stuff
 RUN yarn build
 

@@ -18,8 +18,7 @@ const config = makeConfig({
     namedModules: false,
     minimize: true,
 
-    // This must be same as Django's STATIC_URL setting
-    publicPath: '/assets/',
+    publicPath: process.env.DJANGO_STATIC_URL || '/assets/',
 
     prependSources: [],
 
@@ -37,6 +36,6 @@ const config = makeConfig({
     },
 });
 console.log("Using PRODUCTION config");
-
+console.log(`DJANGO_STATIC_URL=${process.env.DJANGO_STATIC_URL}`);
 
 module.exports = config;

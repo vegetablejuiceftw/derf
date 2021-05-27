@@ -7,6 +7,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-django.production
+      args:
+        # Reference proper DJANGO_STATIC_URL for assets
+        DJANGO_STATIC_URL: "${DJANGO_STATIC_URL}"
     env_file: .env
     container_name: derf_django
     restart: unless-stopped
