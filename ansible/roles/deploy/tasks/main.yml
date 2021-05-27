@@ -65,22 +65,20 @@
       - "{{ project }}_postgres"
 
 
-- name: "Add nginx to {{ project }}_nginx network"
-  docker_container:
-      name: nginx
-      networks:
-          - name: "{{ project }}_nginx"
-      purge_networks: no
-      networks_cli_compatible: yes
+- name: Postgres network
+  docker_network:
+    name: "{{ project }}_postgres"
+    connected:
+      - "postgres-{{ postgres_version }}"
+    appends: yes
 
 
-- name: "Add postgres-{{ postgres_version }} to {{ project }}_postgres network"
-  docker_container:
-      name: "postgres-{{ postgres_version }}"
-      networks:
-          - name: "{{ project }}_postgres"
-      purge_networks: no
-      networks_cli_compatible: yes
+- name: Nginx network
+  docker_network:
+    name: "{{ project }}_nginx"
+    connected:
+      - "nginx-proxy"
+    appends: yes
 
 
 - name: "Build the project"
@@ -117,13 +115,3 @@
   import_tasks: ../../helpers/run-management-command.yml
   vars:
     command_params: "check --deploy"
-
-
-- name: "Set up certificates"
-  import_tasks: letsencrypt.yml
-
-
-- name: "Update nginx config"
-  import_tasks: nginx.yml
-  tags:
-    - nginx

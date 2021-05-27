@@ -1,0 +1,8 @@
+---
+# Requires
+# ansible-galaxy install geerlingguy.pip geerlingguy.docker
+
+- name: Setup scripts
+  hosts: all
+  roles:
+    - server

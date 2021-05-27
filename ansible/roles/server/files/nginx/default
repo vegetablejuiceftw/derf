@@ -1,0 +1,5 @@
+location /assets/ {
+  expires 12h;
+  alias /home/app/web/assets/;
+  add_header Access-Control-Allow-Origin *;
+}

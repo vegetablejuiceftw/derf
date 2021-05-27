@@ -6,6 +6,7 @@
 DJANGO_SITE_URL=https://{{ django_site_host }}
 DJANGO_ALLOWED_HOSTS={{ django_site_host }}
 DJANGO_SETTINGS_MODULE=settings.cloud
+DJANGO_STATIC_URL=/assets/derf/
 
 DJANGO_DATABASE_HOST=postgres
 DJANGO_DATABASE_PORT=5432

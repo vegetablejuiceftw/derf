@@ -1,0 +1,64 @@
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Apt packages
+  apt:
+    name: [ 'git-all', 'htop', 'ncdu', 'ffmpeg', 'curl', 'unzip']
+    state: present
+
+- name: Install docker
+  include_role:
+    name: geerlingguy.docker
+
+- name: install docker-compose
+  include_role:
+    name: geerlingguy.pip
+  vars:
+    pip_install_packages:
+      - name: docker
+      - name: docker-compose==1.29.2
+      - name: poetry
+
+- name: Postgres container
+  docker_container:
+    name: "postgres-{{ postgres_version }}"
+    image: "postgres:{{ postgres_version }}"
+    restart_policy: always
+    container_default_behavior: compatibility
+    volumes:
+      - "/var/lib/postgresql/{{ postgres_version }}/:/var/lib/postgresql/data"
+      - "/var/log/postgresql/{{ postgres_version }}/:/var/log/postgresql"
+    env:
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+
+- name: Nginx proxy directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /etc/nginx/
+    - /etc/nginx/vhost.d/
+
+- name: Nginx proxy default static file config
+  copy:
+    src: nginx/default
+    dest: /etc/nginx/vhost.d/default
+
+- name: Nginx proxy docker-compose file
+  copy:
+    src: nginx/nginx-proxy.yml
+    dest: /etc/nginx/nginx-proxy.yml
+
+- name: "Build the proxy"
+  community.docker.docker_compose:
+      project_src: /etc/nginx/
+      build: yes
+      state: present
+      # Force re-start even if source files have not changed. This ensures that when env is updated the container
+      #  always gets the latest values.
+      restarted: yes
+      files:
+          - /etc/nginx/nginx-proxy.yml
+  register: result

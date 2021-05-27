@@ -1,4 +1,6 @@
 ---
+# the admin password for the deployed postgres
+postgres_password: "TODO:"
 
 django_database_password: "TODO (generate it)"
 

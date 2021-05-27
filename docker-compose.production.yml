@@ -14,7 +14,7 @@ services:
     container_name: derf_django
     restart: unless-stopped
     volumes:
-      - "/var/lib/docker-nginx/files/derf/assets:/files/assets"
+      - "/etc/nginx/assets/derf:/files/assets"
       - "/var/log/derf:/var/log/derf"
     # For some reason the command also has to be specified here, otherwise the entrypoint+command combination won't
     #  work.
@@ -28,6 +28,11 @@ services:
       - redis
     external_links:
       - postgres-12:postgres
+    environment:
+      - VIRTUAL_HOST=rhizophora.xyz
+      - LETSENCRYPT_HOST=rhizophora.xyz
+    expose:
+      - 80
 
   celery:
     build:

@@ -1,0 +1,38 @@
+version: '2'
+# https://testdriven.io/blog/django-lets-encrypt/
+# https://www.digitalocean.com/community/tutorials/how-to-deploy-a-go-web-application-with-docker-and-nginx-on-ubuntu-18-04
+
+services:
+  nginx-proxy:
+    # nginx reverse proxy with container hostname auto discover
+    # combines plain nginx and dockergen to create on-the-fly configurations
+    # https://github.com/nginx-proxy/nginx-proxy/blob/main/docker-compose-separate-containers.yml
+    container_name: nginx-proxy
+    image: jwilder/nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # insepct containers
+      - "/var/run/docker.sock:/tmp/docker.sock:ro"
+      # required for letsencrypt companion
+      - "/etc/nginx/certs:/etc/nginx/certs"
+      - "/usr/share/nginx/html"
+      # static asset configuration
+      - "/etc/nginx/vhost.d:/etc/nginx/vhost.d"  # this is also used for letsencrypt companion
+      - "/etc/nginx/assets:/home/app/web/assets"
+
+  letsencrypt-nginx-proxy-companion:
+    container_name: letsencrypt
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    restart: always
+    volumes:
+      - "/etc/nginx/vhost.d:/etc/nginx/vhost.d"
+      - "/etc/nginx/certs:/etc/nginx/certs"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    volumes_from:
+      - "nginx-proxy"
+    environment:
+      - ACME_CA_URI=https://acme-staging-v02.api.letsencrypt.org/directory
+      # - DEFAULT_EMAIL=admin@yourdomain.xyz
